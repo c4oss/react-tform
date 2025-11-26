@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "jsx": "react-jsx",
         "strict": true,
         "alwaysStrict": true,
         "allowUnreachableCode": false,
@@ -14,15 +15,14 @@
         "noFallthroughCasesInSwitch": true,
         "useUnknownInCatchVariables": true,
         "exactOptionalPropertyTypes": true,
-        "target": "esnext",
-        "jsx": "react-jsx",
-        "declaration": true,
-        "declarationDir": "dist",
-        "emitDeclarationOnly": true,
         "moduleResolution": "node",
-        "skipLibCheck": true
+        "target": "ESNext",
+        "declaration": true,
+        "declarationDir": "dist/types",
+        "sourceMap": true,
+        "skipLibCheck": true,
     },
     "include": [
-        "src"
+        "./src"
     ]
 }
