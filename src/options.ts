@@ -5,10 +5,13 @@ import { FormContext } from "./form"
 import { FormHook as FormEvent } from "./hooks"
 import { FormState } from "./state"
 
-export type FormValidationResult = FormErrorInput | void | PromiseLike<FormErrorInput | void>
-export type FormSubmissionResult = FormErrorInput | void | PromiseLike<FormErrorInput | void>
-export type FormValidator<T> = (value: T) => FormValidationResult
-export type FormSubmitter<T> = (value: T) => FormSubmissionResult
+export type FormValidationResult = FormErrorInput | void
+export type FormSubmissionResult = FormErrorInput | void
+export type FormValidationReturn = FormValidationResult | PromiseLike<FormValidationResult>
+export type FormSubmissionReturn = FormSubmissionResult | PromiseLike<FormSubmissionResult>
+
+export type FormValidator<T> = (value: T) => FormValidationReturn
+export type FormSubmitter<T> = (value: T) => FormSubmissionReturn
 
 export interface UniversalFormOptions {
 
@@ -54,12 +57,7 @@ export interface FormOptions<T> extends UniversalFormOptions {
     /**
      * The initial data for the form. Memoize this for performance benefits.
      */
-    readonly initialValue?: T
-
-    readonly initialErrors?: FormErrors | undefined
-
-    //TODO remove the above, replace w this
-    readonly initial?: FormInitial<T>
+    readonly initial: FormInitial<T>
 
     /**
      * Whether or not the form should update if the initial property changes.

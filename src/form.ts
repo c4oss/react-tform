@@ -21,11 +21,6 @@ export interface FormHandlers {
 export interface FormContext<T> extends FormState<T>, FormField<T> {
 
     /**
-     * The form's initial value.
-     */
-    //TODO put back? readonly initialValue: T
-
-    /**
      * Validate this form.
      */
     readonly validate: () => void
@@ -87,24 +82,10 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
     // Build options and state.
 
     const [state, setState] = useFormState<T>(options)
-    /*
-        const reducer = useReducer((state: FormState<T>, action: FormEvent<T>) => {
-            if (action.type === "validate") {
-                return {
-                    ...state,
-                }
-            }
-            else {
-                throw new Error("TODO")
-            }
-        }, state)*/
 
-    const initialValue = useDeepCompareConstant(options.initial?.value ?? options.initialValue!)
-    const initialErrors = useDeepCompareConstant(options.initial?.errors ?? options.initialErrors)
-    /*const initial = {
-        value: initialValue,
-        errors: initialErrors,
-    }*/
+    const initialValue = useDeepCompareConstant(options.initial.value)
+    const initialErrors = useDeepCompareConstant(options.initial.errors)
+
     // Initialization function. Can be called manually but generally won't be.
 
     const doReinitialize = useCallback(() => setState(initialFormState(initialValue, initialErrors)), [initialValue, initialErrors])
@@ -125,7 +106,7 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
         }
         (async () => {
             try {
-                const errors = buildErrors(await validate(state.value))
+                const errors = buildErrors(await validate(state.value), false)
                 setState(state => {
                     const date = new Date()
                     return {
@@ -134,6 +115,7 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
                         lastValidationResult: errors.length === 0,
                         isValid: errors.length === 0,
                         isInvalid: errors.length > 0,
+                        //TODO submittable: errors.length===0,
                         errors
                     }
                 })
@@ -156,20 +138,22 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
             try {
                 const value = state.value
                 const results = await options.submit(value)
-                const errors = buildErrors(results).map(error => {
-                    return {
-                        ...error,
-                        temporary: error.temporary ?? true,
-                    }
-                })
+                const errors = buildErrors(results, true)
                 setState(state => {
                     const date = new Date()
+                    const status = errors.length === 0
                     return {
                         ...state,
                         lastSubmitted: date,
                         lastSubmitValue: value,
-                        lastSubmitResult: errors.length === 0,
+                        lastSubmitResult: status,
                         submitCount: state.submitCount + 1,
+                        successfulSubmitCount: state.submitCount + (status ? 1 : 0),
+                        lastSuccessfulSubmit: status ? date : state.lastSuccessfulSubmit,
+                        lastSuccessfulSubmitValue: status ? value : state.lastSuccessfulSubmitValue,
+                        failedSubmitCount: state.submitCount + (status ? 0 : 1),
+                        lastFailedSubmit: status ? state.lastFailedSubmit : date,
+                        lastFailedSubmitValue: status ? state.lastSuccessfulSubmitValue : value,
                         errors
                     }
                 })
@@ -275,8 +259,8 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
                 //  valueSource: source,
                 lastChanged: new Date(),
                 lastTouched: suppressTouch ? state.lastTouched : new Date(),
-                //   lastChangedByApi: source === "api" ? new Date() : state.lastChangedByApi,
-                //  lastChangedByUserAction: source === "user-action" ? new Date() : state.lastChangedByUserAction,
+                //  lastChangedByApi: source === "api" ? new Date() : state.lastChangedByApi,
+                //   lastChangedByUserAction: source === "user-action" ? new Date() : state.lastChangedByUserAction,
                 isValid: validating ? undefined : true,
                 isInvalid: validating ? undefined : false,
             }

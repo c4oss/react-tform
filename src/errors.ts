@@ -20,7 +20,7 @@ export type FormErrorInput = undefined | void | string | FormError | readonly (u
  * @param input The input.
  * @returns Form errors.
  */
-export function buildErrors(inputs: FormErrorInput): FormErrors {
+export function buildErrors(inputs: FormErrorInput, defaultTemporary: boolean | undefined = undefined): FormErrors {
     return [inputs].flat().flatMap(input => {
         if (input === undefined) {
             return []
@@ -32,6 +32,11 @@ export function buildErrors(inputs: FormErrorInput): FormErrors {
             }]
         }
         return [input]
+    }).map(error => {
+        return {
+            ...error,
+            temporary: error.temporary ?? defaultTemporary,
+        }
     })
 }
 

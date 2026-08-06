@@ -29,5 +29,5 @@
         "ramda": "^0.32.0",
         "value-or-factory": "^0.0.1"
     },
-    "packageManager": "yarn@4.9.1"
+    "packageManager": "yarn@4.18.0"
 }

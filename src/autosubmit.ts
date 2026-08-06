@@ -97,6 +97,8 @@ export function useAutoSubmit<T>(options: AutoSubmitOptions<T>): AutoSubmitStatu
         ])
         const value = usePrevious(FormData.value)
     */
+
+    //TODO why do we need this
     const lastSubmittedValue = options.form.lastSubmitValue ?? options.form.initializedValue
     const active = options.disabled !== true && options.form.disabled !== true && options.form.canSubmit && !equals(options.form.value, lastSubmittedValue)
     const [next, setNext] = useState<number>()

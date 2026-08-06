@@ -7,6 +7,8 @@ import { useDeepCompareEffect } from "./util"
 export const FORM_HOOKS = {
 
     change: <T>(context: FormState<T>) => context.lastChanged,
+    //changeByUserAction: <T>(context: FormState<T>) => context.lastChangedByUserAction,
+    //changeByApi: <T>(context: FormState<T>) => context.lastChangedByApi,
     touch: <T>(context: FormState<T>) => context.lastTouched,
     commit: <T>(context: FormState<T>) => context.lastCommitted,
     blur: <T>(context: FormState<T>) => context.lastBlurred,
@@ -40,6 +42,6 @@ export function useFormAction<T>(form: FormContext<T>, hooks: FormHook | undefin
         }
     }, [
         hooks,
-        value
+        value,
     ])
 }

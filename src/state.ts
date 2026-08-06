@@ -29,13 +29,10 @@ export interface FormInternalState<T> {
 
     readonly lastInitializeRequested?: Date | undefined
     readonly lastInitialized: Date
-
     readonly lastBlurred?: Date | undefined
     readonly lastFocused?: Date | undefined
     readonly lastTouched?: Date | undefined
     readonly lastChanged?: Date | undefined
-    readonly lastChangedByApi?: Date | undefined
-    readonly lastChangedByUserAction?: Date | undefined
     readonly lastCommitted?: Date | undefined
 
     /**
@@ -56,6 +53,14 @@ export interface FormInternalState<T> {
     readonly lastSubmitResult?: boolean | undefined
     readonly submitCount: number
 
+    readonly lastSuccessfulSubmit?: Date | undefined
+    readonly lastSuccessfulSubmitValue?: T | undefined
+    readonly successfulSubmitCount: number
+
+    readonly lastFailedSubmit?: Date | undefined
+    readonly lastFailedSubmitValue?: T | undefined
+    readonly failedSubmitCount: number
+
 }
 
 /**
@@ -71,12 +76,14 @@ export function initialFormState<T>(initialValue: T, initialErrors?: FormErrors 
         valueSource: "api" as const,
         errors: initialErrors,
         submitCount: 0,
+        successfulSubmitCount: 0,
+        failedSubmitCount: 0,
     }
 }
 
 export function useFormState<T>(options: FormOptions<T>) {
 
-    const [state, setState] = useState<FormInternalState<T>>(initialFormState(options.initial?.value ?? options.initialValue!, options.initialErrors))
+    const [state, setState] = useState<FormInternalState<T>>(initialFormState(options.initial.value, options.initial.errors))
 
     const isValidating = (state.lastValidateRequested?.getTime() ?? 0) > (state.lastValidated?.getTime() ?? 0)
     const isSubmitting = (state.lastSubmitRequested?.getTime() ?? 0) > (state.lastSubmitted?.getTime() ?? 0)
@@ -87,6 +94,20 @@ export function useFormState<T>(options: FormOptions<T>) {
     //  const isDirtySinceSubmitted = useMemo(() => (state.lastChanged?.getTime() ?? 0) > (state.lastSubmitted?.getTime() ?? 0) && !equals(state.value, state.lastSubmitValue ?? state.initializedValue), [state.value, state.lastSubmitValue ?? state.initializedValue])
 
     const hasBeenSubmitted = state.submitCount > 0
+    const dirty = (state.lastChanged?.getTime() ?? 0) > (state.lastInitialized?.getTime() ?? 0) && (state.lastChanged?.getTime() ?? 0) > (state.lastSuccessfulSubmit?.getTime() ?? 0)
+
+    /*
+    useEffect(() => {
+        const canSubmit = !(state.errors ?? []).some(_ => _.temporary !== true)
+        setState(state => {
+            return {
+                ...state,
+                canSubmit,
+            }
+        })
+    }, [
+        state.errors,
+    ])*/
 
     const value = {
         ...state,
@@ -94,6 +115,7 @@ export function useFormState<T>(options: FormOptions<T>) {
         isSubmitting,
         canSubmit,
         hasBeenSubmitted,
+        dirty,
         //    isDirty,
         //   isDirtySinceSubmitted,
     }
