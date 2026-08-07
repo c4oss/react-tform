@@ -1,9 +1,9 @@
 import { createContext } from "react"
 import { ValueOrFactory } from "value-or-factory"
-import { FormErrorInput, FormErrors } from "./errors"
-import { FormContext } from "./form"
-import { FormHook as FormEvent } from "./hooks"
-import { FormState } from "./state"
+import { FormErrorInput, FormErrors } from "./errors.js"
+import { FormContext } from "./form.js"
+import { FormHook as FormEvent } from "./hooks.js"
+import { FormState } from "./state.js"
 
 export type FormValidationResult = FormErrorInput | void
 export type FormSubmissionResult = FormErrorInput | void

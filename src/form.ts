@@ -1,12 +1,12 @@
 import { isNotNil } from "ramda"
 import { FormEvent, SetStateAction, useCallback, useEffect, useMemo } from "react"
 import { ValueOrFactory, callOrGet } from "value-or-factory"
-import { FormErrorInput, FormErrors, buildErrors } from "./errors"
-import { FormField, FormFieldImpl } from "./field"
-import { FORM_HOOK_KEYS, useFormAction } from "./hooks"
-import { FormOptions } from "./options"
-import { FormState, initialFormState, useFormState } from "./state"
-import { useDeepCompareConstant, useIsFirstMount } from "./util"
+import { FormErrorInput, FormErrors, buildErrors } from "./errors.js"
+import { FormField, FormFieldImpl } from "./field.js"
+import { FORM_HOOK_KEYS, useFormAction } from "./hooks.js"
+import { FormOptions } from "./options.js"
+import { FormState, initialFormState, useFormState } from "./state.js"
+import { useDeepCompareConstant, useIsFirstMount } from "./util.js"
 
 export interface FormHandlers {
 

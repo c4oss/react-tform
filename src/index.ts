@@ -1,10 +1,10 @@
 
-export * from "./autosubmit"
-export * from "./control"
-export * from "./errors"
-export * from "./field"
-export * from "./form"
-export * from "./hooks"
-export * from "./options"
-export * from "./state"
+export * from "./autosubmit.js"
+export * from "./control.js"
+export * from "./errors.js"
+export * from "./field.js"
+export * from "./form.js"
+export * from "./hooks.js"
+export * from "./options.js"
+export * from "./state.js"
 

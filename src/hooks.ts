@@ -1,8 +1,8 @@
 import { isNotNil } from "ramda"
-import { FormContext } from "./form"
-import { FormAction } from "./options"
-import { FormState } from "./state"
-import { useDeepCompareEffect } from "./util"
+import { FormContext } from "./form.js"
+import { FormAction } from "./options.js"
+import { FormState } from "./state.js"
+import { useDeepCompareEffect } from "./util.js"
 
 export const FORM_HOOKS = {
 

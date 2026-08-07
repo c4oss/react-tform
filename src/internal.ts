@@ -1,5 +1,5 @@
 import { ValueOrFactory } from "value-or-factory"
-import { FormErrorInput, FormErrorPath, FormErrors } from "./errors"
+import { FormErrorInput, FormErrorPath, FormErrors } from "./errors.js"
 
 export interface FieldInput<G, S = G> {
 

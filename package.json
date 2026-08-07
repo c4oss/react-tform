@@ -6,12 +6,12 @@
     "sideEffects": false,
     "scripts": {
         "clean": "rm -rf dist",
-        "build": "rm -rf dist && npx concurrently \"npx tsc -p tsconfig.esm.json\" \"npx tsc -p tsconfig.cjs.json\"",
-        "watch": "npx concurrently \"npx tsc -p tsconfig.esm.json --watch\" \"npx tsc -p tsconfig.cjs.json --watch\""
+        "build": "tsc",
+        "watch": "tsc --watch"
     },
-    "main": "./dist/cjs/index.js",
-    "module": "./dist/esm/index.js",
-    "types": "./dist/types/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "devDependencies": {
         "@rollup/plugin-typescript": "^12.3.0",
         "@types/ramda": "^0.31.1",

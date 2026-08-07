@@ -1,7 +1,7 @@
 import { equals } from "ramda"
 import { useCallback, useEffect, useState } from "react"
-import { FormContext } from "./form"
-import { useFormAction } from "./hooks"
+import { FormContext } from "./form.js"
+import { useFormAction } from "./hooks.js"
 
 /**
  * An autosave trigger. Immediate will fire on change, delayed will fire on blur and commit.

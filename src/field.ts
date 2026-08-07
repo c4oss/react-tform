@@ -1,9 +1,9 @@
 
 import { Lens, defaultTo, identity, isNotNil, lens, lensIndex, lensProp, pick, set, view } from "ramda"
 import { ValueOrFactory, callOrGet } from "value-or-factory"
-import { FieldControl } from "./control"
-import { FormErrorInput, FormErrors, buildErrors, descendErrors } from "./errors"
-import { FieldInput } from "./internal"
+import { FieldControl } from "./control.js"
+import { FormErrorInput, FormErrors, buildErrors, descendErrors } from "./errors.js"
+import { FieldInput } from "./internal.js"
 
 export interface FormField<T> extends FieldControl<T> {
 

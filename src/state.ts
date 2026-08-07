@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { FormErrors } from "./errors"
-import { FormOptions } from "./options"
+import { FormErrors } from "./errors.js"
+import { FormOptions } from "./options.js"
 
 /**
  * A form's internal state.

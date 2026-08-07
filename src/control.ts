@@ -1,6 +1,6 @@
 import { ValueOrFactory } from "value-or-factory"
-import { FormError, FormErrorInput } from "./errors"
-import { FieldInput } from "./internal"
+import { FormError, FormErrorInput } from "./errors.js"
+import { FieldInput } from "./internal.js"
 
 export interface FieldControl<G, S = G> extends FieldInput<G, S> {
 
