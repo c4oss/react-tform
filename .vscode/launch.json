@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Watch React TForm",
+            "runtimeExecutable": "yarn",
+            "runtimeArgs": [
+                "watch"
+            ],
+        }
+    ]
+}
