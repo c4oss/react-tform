@@ -3,7 +3,7 @@ import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useState, 
 import { FormErrors } from "./errors.js"
 import { FormField, FormFieldImpl } from "./field.js"
 import { FORM_HOOK_KEYS, FormHook } from "./hooks.js"
-import { FormOptions } from "./options.js"
+import { FormInitial, FormOptions } from "./options.js"
 import { FormState, deriveFormState } from "./state.js"
 import { createFormStore } from "./store.js"
 import { useDeepCompareConstant } from "./util.js"
@@ -37,15 +37,15 @@ export interface FormContext<T> extends FormState<T>, FormField<T> {
     readonly initialize: (value: T, errors?: FormErrors | undefined) => void
 
     /**
-     * Reinitialize this form. Clears all state, including errors and submission history.
-     * @deprecated
-     */
-    readonly reinitialize: () => void
-
-    /**
      * Reset to the provided initial values.
      */
     readonly reset: () => void
+
+    /**
+     * Take a value (and errors) as the saved one: like loading it, so the form has no unsaved edits afterwards. See
+     * `useFollowInitial`.
+     */
+    readonly follow: (next: FormInitial<T>) => void
 
     /**
      * Listen for form hooks. Each runs the listener once, after React has rendered the change. Returns a function
@@ -82,7 +82,7 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
     const initialValue = useDeepCompareConstant(options.initial.value)
     const initialErrors = useDeepCompareConstant(options.initial.errors)
     useEffect(() => {
-        store.updateInitial(initialValue, initialErrors)
+        store.updateInitial({ value: initialValue, errors: initialErrors })
     }, [
         store,
         initialValue,
@@ -133,12 +133,12 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
         ...group,
         initialValue,
         initialize: store.initialize,
-        reinitialize: store.reinitialize,
         reset: store.reset,
         validate: store.validate,
         submit,
         setErrors: store.setErrors,
         listen: store.listen,
+        follow: store.follow,
         handlers,
     }
 
@@ -157,7 +157,7 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
             })
         })
         const stopValidating = store.listen([validateOn], () => {
-            if (validateStart === "afterFirstSubmission" && !state.hasBeenSubmitted) {
+            if (validateStart === "afterFirstSubmission" && !state.submitted) {
                 return
             }
             store.validate()

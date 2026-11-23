@@ -1,5 +1,5 @@
 import { equals } from "ramda"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useState } from "react"
 import { FormContext } from "./form.js"
 import { useFormAction } from "./hooks.js"
 
@@ -77,15 +77,19 @@ export interface AutoSubmitStatus {
  * @returns Autosave status.
  */
 export function useAutoSubmit<T>(options: AutoSubmitOptions<T>): AutoSubmitStatus {
-    const lastSubmittedValue = options.form.lastSubmitValue ?? options.form.initializedValue
-    const active = options.disabled !== true && options.form.disabled !== true && options.form.canSubmit && !equals(options.form.value, lastSubmittedValue)
+    // the value last submitted (by this or any other way: a save button, Enter), as seen when the submission started
+    const [submitted, setSubmitted] = useState<T>()
+    // Something to save: the value differs from what's saved, and isn't the one last submitted (a failed save isn't
+    // tried again until the value changes).
+    const active = options.disabled !== true && options.form.disabled !== true && options.form.canSubmit && options.form.dirty && !equals(options.form.value, submitted)
     const [next, setNext] = useState<number>()
     const cancel = useCallback(() => setNext(undefined), [])
+    // nothing to save any more: drop a scheduled save, while rendering rather than in an effect after
+    if (!active && next !== undefined) {
+        setNext(undefined)
+    }
     const trigger = (delay?: number | undefined) => {
         if (delay === undefined) {
-            return
-        }
-        if (options.form.lastChanged === undefined) {
             return
         }
         if (!active) {
@@ -106,7 +110,6 @@ export function useAutoSubmit<T>(options: AutoSubmitOptions<T>): AutoSubmitStatu
         if (next === undefined) {
             return
         }
-        console.log("Auto submitting form...")
         const timeout = setTimeout(options.form.submit, Math.max(next - Date.now(), 0))
         return () => {
             clearTimeout(timeout)
@@ -114,14 +117,21 @@ export function useAutoSubmit<T>(options: AutoSubmitOptions<T>): AutoSubmitStatu
     }, [
         next
     ])
-    useEffect(() => {
-        if (!active) {
-            cancel()
+    useFormAction(options.form, "beforeSubmit", () => {
+        cancel()
+        setSubmitted(options.form.value)
+    })
+    // a save still waiting when the form goes away is made now, rather than dropped
+    const submitPending = useEffectEvent(() => {
+        if (next !== undefined && active) {
+            options.form.submit()
         }
-    }, [
-        active
-    ])
-    useFormAction(options.form, "beforeSubmit", cancel)
+    })
+    useEffect(() => {
+        return () => {
+            submitPending()
+        }
+    }, [])
     return {
         active,
         next,

@@ -1,4 +1,3 @@
-import { createContext } from "react"
 import { ValueOrFactory } from "value-or-factory"
 import { FormErrorInput, FormErrors } from "./errors.js"
 import { FormContext } from "./form.js"
@@ -66,12 +65,6 @@ export interface FormOptions<T> extends UniversalFormOptions {
     readonly autoUpdate?: ValueOrFactory<boolean, [FormState<T>]> | undefined
 
     /**
-     * Whether or not the form should reinitialize if the initial property changes.
-     * @defaultValue `false`
-     */
-    readonly reinitializeOnUpdate?: ValueOrFactory<boolean, [FormState<T>]> | undefined
-
-    /**
      * Submission function for the form. If this throws an exception, it will be thrown within React. If you want to handle errors, make sure to return a FormError[].
      */
     readonly submit: FormSubmitter<T>
@@ -92,18 +85,4 @@ export type FormActions<T> = {
 
     readonly [K in FormEvent]?: FormAction<T> | readonly FormAction<T>[]
 
-}
-
-export const FormDefaults = createContext<UniversalFormOptions>({})
-
-export function useFormOptions<T>(input: FormOptions<T>) {
-    // const defaults = useContext(FormDefaults)
-    return {
-        //   ...defaults,
-        ...input,
-        on: {
-            //    ...defaults.on,
-            ...input.on,
-        }
-    }
 }

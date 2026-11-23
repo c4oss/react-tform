@@ -2,31 +2,27 @@ import { isNotNil } from "ramda"
 import { useLayoutEffect } from "react"
 import { FormContext } from "./form.js"
 import { FormAction } from "./options.js"
-import { FormState } from "./state.js"
 
-export const FORM_HOOKS = {
-
-    change: <T>(context: FormState<T>) => context.lastChanged,
-    //changeByUserAction: <T>(context: FormState<T>) => context.lastChangedByUserAction,
-    //changeByApi: <T>(context: FormState<T>) => context.lastChangedByApi,
-    touch: <T>(context: FormState<T>) => context.lastTouched,
-    commit: <T>(context: FormState<T>) => context.lastCommitted,
-    blur: <T>(context: FormState<T>) => context.lastBlurred,
-    focus: <T>(context: FormState<T>) => context.lastFocused,
-    init: <T>(context: FormState<T>) => context.lastInitialized,
-    beforeSubmit: <T>(context: FormState<T>) => context.lastSubmitRequested,
-    afterSubmit: <T>(context: FormState<T>) => context.lastSubmitted,
-    beforeValidate: <T>(context: FormState<T>) => context.lastValidateRequested,
-    afterValidate: <T>(context: FormState<T>) => context.lastValidated,
-
-} as const
-
-export const FORM_HOOK_KEYS = Object.keys(FORM_HOOKS) as readonly FormHook[]
+/**
+ * The events of a form that actions can be attached to (see `useFormAction` and the form's `on` option).
+ */
+export const FORM_HOOK_KEYS = [
+    "change",
+    "touch",
+    "commit",
+    "blur",
+    "focus",
+    "init",
+    "beforeSubmit",
+    "afterSubmit",
+    "beforeValidate",
+    "afterValidate",
+] as const
 
 /**
  * An event type for the form.
  */
-export type FormHook = keyof typeof FORM_HOOKS
+export type FormHook = typeof FORM_HOOK_KEYS[number]
 
 /**
  * Attach a callback to a form hook. It runs once each time the hook's event happens, after React has rendered the
