@@ -1,12 +1,12 @@
 import { isNotNil } from "ramda"
-import { FormEvent, SetStateAction, useCallback, useEffect, useMemo } from "react"
-import { ValueOrFactory, callOrGet } from "value-or-factory"
-import { FormErrorInput, FormErrors, buildErrors } from "./errors.js"
+import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { FormErrors } from "./errors.js"
 import { FormField, FormFieldImpl } from "./field.js"
-import { FORM_HOOK_KEYS, useFormAction } from "./hooks.js"
+import { FORM_HOOK_KEYS, FormHook } from "./hooks.js"
 import { FormOptions } from "./options.js"
-import { FormState, initialFormState, useFormState } from "./state.js"
-import { useDeepCompareConstant, useIsFirstMount } from "./util.js"
+import { FormState, deriveFormState } from "./state.js"
+import { createFormStore } from "./store.js"
+import { useDeepCompareConstant } from "./util.js"
 
 export interface FormHandlers {
 
@@ -34,7 +34,7 @@ export interface FormContext<T> extends FormState<T>, FormField<T> {
      * Reinitialize this form. Clears all state, including errors and submission history.
      * @deprecated
      */
-    readonly initialize: (value: T) => void
+    readonly initialize: (value: T, errors?: FormErrors | undefined) => void
 
     /**
      * Reinitialize this form. Clears all state, including errors and submission history.
@@ -48,28 +48,17 @@ export interface FormContext<T> extends FormState<T>, FormField<T> {
     readonly reset: () => void
 
     /**
+     * Listen for form hooks. Each runs the listener once, after React has rendered the change. Returns a function
+     * that stops listening. See `useFormAction`, which listens for the life of a component.
+     */
+    readonly listen: (hooks: readonly FormHook[], listener: () => void) => () => void
+
+    /**
      * An onKeyUp handler for non-form root elements. If the form is disabled, this will be undefined.
      */
     readonly handlers: FormHandlers
 
 }
-
-/*
-interface ValidateFormEvent {
-    readonly type: "validate"
-}
-interface SubmitFormEvent {
-    readonly type: "submit"
-}
-interface SetErrorsFormEvent {
-    readonly type: "setErrors"
-}
-interface SetValueFormEvent<T> {
-    readonly type: "setValue"
-    readonly value: T
-}
-type FormEvent<T> = SetValueFormEvent<T> | SetErrorsFormEvent | SubmitFormEvent | ValidateFormEvent
-*/
 
 /**
  * Generate a form.
@@ -79,204 +68,25 @@ type FormEvent<T> = SetValueFormEvent<T> | SetErrorsFormEvent | SubmitFormEvent 
  */
 export function useForm<T>(options: FormOptions<T>): FormContext<T> {
 
-    // Build options and state.
+    // The form's state lives in a store, created once: its actions act on its current state straight away.
 
-    const [state, setState] = useFormState<T>(options)
+    const [store] = useState(() => createFormStore(options))
+    useLayoutEffect(() => {
+        store.setOptions(options)
+    })
+    const state = deriveFormState(useSyncExternalStore(store.subscribe, store.getState))
+
+    // Follow the initial value (and errors) as the options say to. The store ignores ones it has already applied, so
+    // running this again (a hot reload) doesn't reset the form.
 
     const initialValue = useDeepCompareConstant(options.initial.value)
     const initialErrors = useDeepCompareConstant(options.initial.errors)
-
-    // Initialization function. Can be called manually but generally won't be.
-
-    const doReinitialize = useCallback(() => setState(initialFormState(initialValue, initialErrors)), [initialValue, initialErrors])
-    const doReset = useCallback(() => {
-        setValue(initialValue, true)
-        setErrors(initialErrors)
+    useEffect(() => {
+        store.updateInitial(initialValue, initialErrors)
     }, [
+        store,
         initialValue,
         initialErrors,
-    ])
-
-    // Validate function.
-
-    const doValidate = () => {
-        const validate = options.validate
-        if (validate === undefined) {
-            return
-        }
-        (async () => {
-            try {
-                const errors = buildErrors(await validate(state.value), false)
-                setState(state => {
-                    const date = new Date()
-                    return {
-                        ...state,
-                        lastValidated: date,
-                        lastValidationResult: errors.length === 0,
-                        isValid: errors.length === 0,
-                        isInvalid: errors.length > 0,
-                        //TODO submittable: errors.length===0,
-                        errors
-                    }
-                })
-            }
-            catch (exception) {
-                setState(state => {
-                    return {
-                        ...state,
-                        exception
-                    }
-                })
-            }
-        })()
-    }
-
-    // Submit function.
-
-    const doSubmit = () => {
-        (async () => {
-            try {
-                const value = state.value
-                const results = await options.submit(value)
-                const errors = buildErrors(results, true)
-                setState(state => {
-                    const date = new Date()
-                    const status = errors.length === 0
-                    return {
-                        ...state,
-                        lastSubmitted: date,
-                        lastSubmitValue: value,
-                        lastSubmitResult: status,
-                        submitCount: state.submitCount + 1,
-                        successfulSubmitCount: state.submitCount + (status ? 1 : 0),
-                        lastSuccessfulSubmit: status ? date : state.lastSuccessfulSubmit,
-                        lastSuccessfulSubmitValue: status ? value : state.lastSuccessfulSubmitValue,
-                        failedSubmitCount: state.submitCount + (status ? 0 : 1),
-                        lastFailedSubmit: status ? state.lastFailedSubmit : date,
-                        lastFailedSubmitValue: status ? state.lastSuccessfulSubmitValue : value,
-                        errors
-                    }
-                })
-            }
-            catch (exception) {
-                setState(state => {
-                    return {
-                        ...state,
-                        exception
-                    }
-                })
-            }
-        })()
-    }
-
-    const isFirstMount = useIsFirstMount()
-    useEffect(() => {
-        if (isFirstMount) {
-            return
-        }
-        if (callOrGet(options.autoUpdate, state)) {
-            if (callOrGet(options.reinitializeOnUpdate, state)) {
-                doReinitialize()
-            }
-            else {
-                doReset()
-            }
-        }
-    }, [
-        doReinitialize,
-        doReset,
-    ])
-    useEffect(() => {
-        if (state.lastInitializeRequested === undefined) {
-            return
-        }
-        doReinitialize()
-    }, [
-        state.lastInitializeRequested
-    ])
-    useEffect(() => {
-        if (state.lastValidateRequested === undefined) {
-            return
-        }
-        doValidate()
-    }, [
-        state.lastValidateRequested
-    ])
-    useEffect(() => {
-        if (state.lastSubmitRequested === undefined) {
-            return
-        }
-        doSubmit()
-    }, [
-        state.lastSubmitRequested
-    ])
-
-    // Revert to the initial data.
-
-    const initialize = useCallback((initialValue: T, initialErrors?: FormErrors | undefined) => {
-        setState(initialFormState(initialValue, initialErrors))
-    }, [
-        setState
-    ])
-    const reinitialize = useCallback(() => {
-        setState(state => {
-            return {
-                ...state,
-                lastInitializeRequested: new Date(),
-            }
-        })
-    }, [
-        setState
-    ])
-    const submit = useCallback((event?: FormEvent<unknown> | undefined) => {
-        event?.preventDefault()
-        setState(state => {
-            return {
-                ...state,
-                lastSubmitRequested: new Date(),
-            }
-        })
-    }, [
-        setState
-    ])
-    const validate = useCallback(() => {
-        setState(state => {
-            return {
-                ...state,
-                lastValidateRequested: new Date(),
-            }
-        })
-    }, [
-        setState
-    ])
-    const reset = doReset //TODO dispatch?
-    const setValue = useCallback((value: SetStateAction<T>, suppressTouch = false) => {
-        setState(state => {
-            const validating = options.validate !== undefined
-            return {
-                ...state,
-                value: callOrGet(value, state.value),
-                //  valueSource: source,
-                lastChanged: new Date(),
-                lastTouched: suppressTouch ? state.lastTouched : new Date(),
-                //  lastChangedByApi: source === "api" ? new Date() : state.lastChangedByApi,
-                //   lastChangedByUserAction: source === "user-action" ? new Date() : state.lastChangedByUserAction,
-                isValid: validating ? undefined : true,
-                isInvalid: validating ? undefined : false,
-            }
-        })
-    }, [
-        setState
-    ])
-    const setErrors = useCallback((errors: ValueOrFactory<FormErrorInput, [FormErrors]>) => {
-        setState(state => {
-            return {
-                ...state,
-                errors: buildErrors(callOrGet(errors, state.errors ?? []))
-            }
-        })
-    }, [
-        setState
     ])
 
     // The root form group.
@@ -284,16 +94,22 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
     const group = FormFieldImpl.from({
         path: [],
         value: state.value,
-        setValue,
+        setValue: store.setValue,
         errors: state.errors,
-        setErrors,
+        setErrors: store.setErrors,
         disabled: options.disabled,
-        touch: () => setState(state => ({ ...state, lastTouched: new Date() })),
-        blur: () => setState(state => ({ ...state, lastBlurred: new Date() })),
-        commit: () => setState(state => ({ ...state, lastCommitted: new Date() })),
-        focus: () => setState(state => ({ ...state, lastFocused: new Date() })),
+        touch: () => store.mark("touch"),
+        blur: () => store.mark("blur"),
+        commit: () => store.mark("commit"),
+        focus: () => store.mark("focus"),
     })
 
+    const submit = useCallback((event?: FormEvent<unknown> | undefined) => {
+        event?.preventDefault()
+        store.submit()
+    }, [
+        store
+    ])
     const handlers = useMemo(() => {
         return {
             onKeyUp: (() => {
@@ -302,13 +118,13 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
                 }
                 return (event: React.KeyboardEvent<HTMLElement>) => {
                     if (event.target instanceof HTMLInputElement && event.key === "Enter") {
-                        submit()
+                        store.submit()
                     }
                 }
             })()
         }
     }, [
-        submit,
+        store,
         options.disabled,
     ])
 
@@ -316,33 +132,45 @@ export function useForm<T>(options: FormOptions<T>): FormContext<T> {
         ...state,
         ...group,
         initialValue,
-        initialize,
-        reinitialize,
-        reset,
-        validate,
+        initialize: store.initialize,
+        reinitialize: store.reinitialize,
+        reset: store.reset,
+        validate: store.validate,
         submit,
-        setErrors,
+        setErrors: store.setErrors,
+        listen: store.listen,
         handlers,
     }
 
-    FORM_HOOK_KEYS.forEach(item => {
-        useFormAction(context, item, () => {
-            const actions = [options.on?.[item]].flat().filter(isNotNil)
-            actions.forEach(action => {
-                typeof action === "string" ? context[action]() : action(context)
-            })
-        })
-    })
+    // The actions in the options, and validation, run on the hooks they're for: listened for after every render, so
+    // they run with this render's form.
+
     const validateOn = options.validateOn ?? "change"
     const validateStart = options.validateStart ?? "immediate"
-    useFormAction(context, validateOn, () => {
-        if (options.validate === undefined) {
-            return
+    useLayoutEffect(() => {
+        const stops = FORM_HOOK_KEYS.map(hook => {
+            return store.listen([hook], () => {
+                const actions = [options.on?.[hook]].flat().filter(isNotNil)
+                actions.forEach(action => {
+                    typeof action === "string" ? context[action]() : action(context)
+                })
+            })
+        })
+        const stopValidating = store.listen([validateOn], () => {
+            if (validateStart === "afterFirstSubmission" && !state.hasBeenSubmitted) {
+                return
+            }
+            store.validate()
+        })
+        return () => {
+            [...stops, stopValidating].forEach(stop => stop())
         }
-        if (validateStart === "afterFirstSubmission" && !state.hasBeenSubmitted) {
-            return
-        }
-        validate()
+    })
+
+    // Deliver the events of this render's changes, now that their listeners are in place.
+
+    useEffect(() => {
+        store.flush()
     })
 
     if (state.exception !== undefined) {

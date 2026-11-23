@@ -77,28 +77,6 @@ export interface AutoSubmitStatus {
  * @returns Autosave status.
  */
 export function useAutoSubmit<T>(options: AutoSubmitOptions<T>): AutoSubmitStatus {
-    /*
-    
-        const lastSubmitted = options.form.lastSubmitValue ?? options.form.initializedValue
-    
-    
-        const [submitted, setSubmitted] = useState<T>()
-        useFormAction(options.form, "beforeSubmit", () => {
-            setSubmitted(options.form.value)
-        })
-        const dirty = useMemo(() => !equals(submitted, options.form.value), [submitted, options.form.value])
-    
-        const isChanged = useMemo(() => {
-            const start = options.form.lastSubmitValue
-        }, [
-            options.form.value,
-            options.form.lastSubmitValue,
-            options.form.initializedValue,
-        ])
-        const value = usePrevious(FormData.value)
-    */
-
-    //TODO why do we need this
     const lastSubmittedValue = options.form.lastSubmitValue ?? options.form.initializedValue
     const active = options.disabled !== true && options.form.disabled !== true && options.form.canSubmit && !equals(options.form.value, lastSubmittedValue)
     const [next, setNext] = useState<number>()

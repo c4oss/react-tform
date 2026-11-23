@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { FormErrors } from "./errors.js"
-import { FormOptions } from "./options.js"
 
 /**
  * A form's internal state.
@@ -27,7 +25,6 @@ export interface FormInternalState<T> {
      */
     readonly errors?: FormErrors | undefined
 
-    readonly lastInitializeRequested?: Date | undefined
     readonly lastInitialized: Date
     readonly lastBlurred?: Date | undefined
     readonly lastFocused?: Date | undefined
@@ -43,6 +40,11 @@ export interface FormInternalState<T> {
     readonly lastValidationResult?: boolean | undefined
     readonly isValid?: boolean | undefined
     readonly isInvalid?: boolean | undefined
+
+    /**
+     * How many validations have started and not yet finished.
+     */
+    readonly pendingValidations: number
 
     /**
      * The most recently submitted value.
@@ -61,6 +63,11 @@ export interface FormInternalState<T> {
     readonly lastFailedSubmitValue?: T | undefined
     readonly failedSubmitCount: number
 
+    /**
+     * How many submissions have started and not yet finished.
+     */
+    readonly pendingSubmissions: number
+
 }
 
 /**
@@ -68,60 +75,32 @@ export interface FormInternalState<T> {
  * @param initialValue The form's value.
  * @returns An initial form state.
  */
-export function initialFormState<T>(initialValue: T, initialErrors?: FormErrors | undefined) {
+export function initialFormState<T>(initialValue: T, initialErrors?: FormErrors | undefined): FormInternalState<T> {
     return {
         lastInitialized: new Date(),
         initializedValue: initialValue,
         value: initialValue,
-        valueSource: "api" as const,
         errors: initialErrors,
+        pendingValidations: 0,
         submitCount: 0,
         successfulSubmitCount: 0,
         failedSubmitCount: 0,
+        pendingSubmissions: 0,
     }
 }
 
-export function useFormState<T>(options: FormOptions<T>) {
-
-    const [state, setState] = useState<FormInternalState<T>>(initialFormState(options.initial.value, options.initial.errors))
-
-    const isValidating = (state.lastValidateRequested?.getTime() ?? 0) > (state.lastValidated?.getTime() ?? 0)
-    const isSubmitting = (state.lastSubmitRequested?.getTime() ?? 0) > (state.lastSubmitted?.getTime() ?? 0)
-
-    const canSubmit = !(state.errors ?? []).some(_ => _.temporary !== true)
-
-    // const isDirty = useMemo(() => (state.lastChanged?.getTime() ?? 0) > state.lastInitialized.getTime() && !equals(state.value, state.initializedValue), [state.value, state.initializedValue])
-    //  const isDirtySinceSubmitted = useMemo(() => (state.lastChanged?.getTime() ?? 0) > (state.lastSubmitted?.getTime() ?? 0) && !equals(state.value, state.lastSubmitValue ?? state.initializedValue), [state.value, state.lastSubmitValue ?? state.initializedValue])
-
-    const hasBeenSubmitted = state.submitCount > 0
-    const dirty = (state.lastChanged?.getTime() ?? 0) > (state.lastInitialized?.getTime() ?? 0) && (state.lastChanged?.getTime() ?? 0) > (state.lastSuccessfulSubmit?.getTime() ?? 0)
-
-    /*
-    useEffect(() => {
-        const canSubmit = !(state.errors ?? []).some(_ => _.temporary !== true)
-        setState(state => {
-            return {
-                ...state,
-                canSubmit,
-            }
-        })
-    }, [
-        state.errors,
-    ])*/
-
-    const value = {
+/**
+ * The form's state, with what can be worked out from it.
+ */
+export function deriveFormState<T>(state: FormInternalState<T>) {
+    return {
         ...state,
-        isValidating,
-        isSubmitting,
-        canSubmit,
-        hasBeenSubmitted,
-        dirty,
-        //    isDirty,
-        //   isDirtySinceSubmitted,
+        isValidating: state.pendingValidations > 0,
+        isSubmitting: state.pendingSubmissions > 0,
+        canSubmit: !(state.errors ?? []).some(error => error.temporary !== true),
+        hasBeenSubmitted: state.submitCount > 0,
+        dirty: (state.lastChanged?.getTime() ?? 0) > state.lastInitialized.getTime() && (state.lastChanged?.getTime() ?? 0) > (state.lastSuccessfulSubmit?.getTime() ?? 0),
     }
-
-    return [value, setState] as const
-
 }
 
-export type FormState<T> = Readonly<ReturnType<typeof useFormState<T>>[0]>
+export type FormState<T> = Readonly<ReturnType<typeof deriveFormState<T>>>

@@ -7,4 +7,5 @@ export * from "./form.js"
 export * from "./hooks.js"
 export * from "./options.js"
 export * from "./state.js"
+export * from "./store.js"
 
